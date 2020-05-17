@@ -1,0 +1,258 @@
+
+#添加一个文档，指定id=15
+POST /test/user/15
+{
+  "id":15,
+  "userName":"yangbin",
+   "age":20,
+    "desc":"yangbin is good boy14"
+}
+
+#获取ID=2的文档
+GET /test/user/2
+
+#查询全部文档
+GET /test/user/_search
+{
+  "query": {"match_all": {}}
+}
+
+#根据userName查询并且按照id进行排序，并且进行分页
+GET /test/user/_search
+{
+  "query": {"match": {
+    "userName": "yangbin"
+  }},"sort": [
+    {
+      "id": {
+        "order": "desc"
+      }
+    }
+  ],
+  "from": 0,
+  "size": 10
+}
+
+#多字段or查询
+GET /test/user/_search
+{
+  "query": {"multi_match": {
+    "query": "yangbin",
+    "fields": ["userName","desc"]
+  }},
+  "_source": ["userName","id"]
+}
+
+#范围查询
+GET /test/user/_search
+{
+ "query":{"match_all": {}},
+  "post_filter": {"range": {
+    "age": {
+      "gte": 20,
+       "lt": 24
+    }
+  }}
+}
+
+#全文检索，分词查询
+GET /test/user/_search
+{
+  "query": {
+    "match": {
+      "desc": "good boy"
+    }
+  },
+  "highlight": {
+    "fields": {
+      "desc": {}
+    },
+    "pre_tags": [
+      "<font style='color:red'>"
+    ],
+    "post_tags": [
+      "</font>"
+    ]
+  }
+}
+
+#短句查询
+GET /test/user/_search
+{
+  "query": {"match_phrase": {
+    "desc": "yangbin is good boy2"
+  }}
+}
+
+#使用ik进行分词查询
+GET _analyze
+{
+  "analyzer": "ik_smart",
+   "text": "程12序312员"
+}
+
+#创建索引库
+PUT /test1
+
+#创建索引库的student字段映射
+PUT /test1/_mapping/student
+{
+  "properties": {
+    "userName":{
+      "type": "text",
+       "index": true,
+        "store": true
+    },
+    "age":{
+      "type": "integer",
+      "index": true,
+       "store": true
+    },
+    "number":{
+      "type": "long",
+       "index": true,
+       "store": true
+    },
+    "desc":{
+      "type": "text",
+       "analyzer": "ik_max_word",
+       "search_analyzer":"ik_smart",
+       "index": true,
+       "store": false
+    }
+  }
+}
+
+#添加数据
+POST /test1/student/2
+{
+  "number":2,
+  "userName":"yangbin",
+   "age":20,
+   "desc":"程12序312员"
+}
+
+#添加数据
+POST /test1/student/2
+{
+  "number":2,
+  "userName":"yangbin",
+   "age":20,
+   "desc":"杨彬是一个出色的程序员"
+}
+
+#进行分词查询
+GET /test1/student/_search
+{
+  "query": {"match": {"desc": "程序员"}}
+}
+
+#删除索引库
+DELETE /test1
+
+#删除索引库的student
+DELETE /test1/student
+
+#根据ID删除一个文档
+DELETE /test1/student/2
+
+#######聚合操作
+#求出年龄最大的值（max min avg sum）
+GET /test/user/_search?size=0
+{
+  "aggs": {
+    "age_max": {
+      "max": {
+        "field": "age"
+      }
+    }
+  }
+}
+
+GET /test/user/_search?size=0
+{
+  "query": {"match": {
+    "userName": "yangbin"
+  }}, 
+  "aggs": {
+    "age_max": {
+      "max": {
+        "field": "age"
+      }
+    }
+  }
+}
+
+#查询根据age字段distinct之后的个数
+GET /test/user/_search?size=0
+{
+  "aggs": {
+    "age_distinct": {
+      "cardinality": {
+        "field": "age"
+      }
+    }
+  }
+}
+
+#查看根据age字段stats之后的聚合信息
+GET /test/user/_search?size=0
+{
+   
+  "aggs": {
+    "age_stats": {
+      "stats": {
+        "field": "age"
+      }
+    }
+  }
+}
+
+#结果显示
+{
+  "took": 4,
+  "timed_out": false,
+  "_shards": {
+    "total": 5,
+    "successful": 5,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": 15,
+    "max_score": 0,
+    "hits": []
+  },
+  "aggregations": {
+    "age_stats": {
+      "count": 15,
+      "min": 20,
+      "max": 30,
+      "avg": 24.133333333333333,
+      "sum": 362
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

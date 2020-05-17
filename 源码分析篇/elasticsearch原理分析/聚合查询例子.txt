@@ -1,0 +1,218 @@
+#删除索引
+DELETE emp_index
+
+#新建索引
+PUT /emp_index
+
+#所有文档定义
+PUT /emp_index/_mapping/employees
+{
+  "properties": {
+    "salary":{
+      "type": "integer",
+       "index": true,
+        "store": true
+    },
+    "age":{
+      "type": "integer",
+      "index": true,
+       "store": true
+    },
+    "gender":{
+      "type": "keyword",
+       "index": true,
+       "store": true
+    },
+    "job":{
+      "type": "keyword",
+       "index": true,
+       "store": true
+    },
+    "name":{
+      "type": "text",
+       "analyzer": "ik_max_word",
+       "search_analyzer":"ik_smart",
+       "index": true,
+       "store": false
+    }
+  }
+}
+
+#添加基础数据
+POST /emp_index/employees/1
+{ "name" : "Emma","age":32,"job":"Product Manager","gender":"female","salary":35000 }
+POST /emp_index/employees/2
+{ "name" : "Underwood","age":41,"job":"Dev Manager","gender":"male","salary": 50000}
+POST /emp_index/employees/3
+{ "name" : "Tran","age":25,"job":"Web Designer","gender":"male","salary":18000 }
+POST /emp_index/employees/4
+{ "name" : "Rivera","age":26,"job":"Web Designer","gender":"female","salary": 22000}
+POST /emp_index/employees/5
+{ "name" : "Rose","age":25,"job":"QA","gender":"female","salary":18000 }
+POST /emp_index/employees/6
+{ "name" : "Lucy","age":31,"job":"QA","gender":"female","salary": 25000}
+POST /emp_index/employees/7
+{ "name" : "Byrd","age":27,"job":"QA","gender":"male","salary":20000 }
+POST /emp_index/employees/8
+{ "name" : "Foster","age":27,"job":"Java Programmer","gender":"male","salary": 20000}
+POST /emp_index/employees/9
+{ "name" : "Gregory","age":32,"job":"Java Programmer","gender":"male","salary":22000 }
+POST /emp_index/employees/10
+{ "name" : "Bryant","age":20,"job":"Java Programmer","gender":"male","salary": 9000}
+
+#获取全部的文档数据
+GET /emp_index/employees/_search
+
+#找到最低、最高和平均工资
+GET /emp_index/employees/_search
+{
+  "size": 0, 
+  "aggs": {
+    "max_salary": {
+      "max": {"field": "salary"}
+    },
+    "min_salary":{
+      "min": {
+        "field": "salary"
+      }
+    },
+    "avg_salary":{
+      "avg": {
+        "field": "salary"
+      }
+    }
+  }
+}
+
+#一个聚合，输出多值（最大值，最小值，平均值）
+GET /emp_index/employees/_search
+{
+  "size": 0,
+  "aggs": {
+    "stats_salary": {
+      "stats": {
+        "field":"salary"
+      }
+    }
+  }
+}
+#求一共有多少工作类型
+POST /emp_index/employees/_search
+{
+  "size": 0,
+  "aggs": {
+    "cardinate": {
+      "cardinality": {
+        "field": "job"
+      }
+    }
+  }
+}
+
+
+#查看中位数的薪资(salary<=${value1}的文档数占总命中文档数的50%,salary<=${value2}的文档数占命中文档数的90%)
+#50%为中位数
+POST /emp_index/employees/_search
+{
+    "size": 0,
+    "aggs": {
+        "center_percentiles": {
+            "percentiles": {
+                "field": "salary",
+                "percents" : [50, 99],
+                "keyed": false
+            }
+        }
+    }
+}
+
+#统计薪资小于等于1000和薪资小于等于5000的占比
+POST /emp_index/employees/_search
+{
+    "size": 0,
+    "aggs": {
+        "salary_percentile_ranks": {
+            "percentile_ranks": {
+                "field": "salary",
+                "values": [1000,5000]
+            }
+        }
+    }
+}
+
+
+#根据job分组然后再根据文档数量升序排序，并且满足最小文档数为2的结果，结果中包含Java并且不包含Web的结果
+POST /emp_index/employees/_search?size=0
+{
+  "aggs": {
+    "job_group": {
+      "terms": {
+        "field": "job",
+        "size": 10,
+        "order": {
+          "_count": "asc"
+        },
+        "min_doc_count": 2,
+        "include": ".*Java.*",
+        "exclude": ".*Web.*"
+      }
+    }
+  }
+}
+
+
+#根据工作类型分桶，然后按照性别分桶，计算每个桶中工资的的最高薪资、最低薪资、平均薪资
+POST /emp_index/employees/_search
+{
+  "size": 0,
+  "aggs": {
+    "Job_gender_stats": {
+      "terms": {
+        "field": "job"
+      },
+      "aggs": {
+        "gender_stats": {
+          "terms": {
+            "field": "gender"
+          },
+          "aggs": {
+            "salary_stats": {
+              "stats": {
+                "field": "salary"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+#根据name进行过滤，根据gender进行分桶，最后选取匹配度最高的文档
+GET /emp_index/employees/_search
+{
+ "query": {"match": {
+   "name": "Rose Byrd"
+ }}, 
+  "aggs": {
+    "all_interests": {
+      "terms": {
+        "field": "gender",
+        "size": 100
+      },
+      "aggs": {
+        "top_tag_hits": {
+          "top_hits": {
+            "size": 1
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+
+
+
